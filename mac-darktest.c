@@ -52,25 +52,40 @@ int j_hdr(struct jigdump_hdr *jh , int in_idx, struct rcv_pkt * paket){
   paket-> freq = jh->freq_ ;
   //TODO: What to do with all these flags ? i
   //save or discard ?  RX_FLAG_SHORT_GI, RX_FLAG_HT RX_FLAG_40MHZ 
+	int can_calculate =1 ;
+	int bandwidth=0, gi_length=0;
+	int final_rate=0;
+
   if(!jh->rate_ || (jh->flags_ & RX_FLAG_HT )){
-    paket->rate=  jh->rate_idx_ & 0x7f  ; //  (.5 * ieee80211_htrates[(jh->rate_idx_) & 0xf]);    	
+		final_rate =109 ; 
+	if(jh->flags_ &  RX_FLAG_40MHZ)					
+		bandwidth =1 ; 
+	if(jh->flags_ & RX_FLAG_SHORT_GI)
+		gi_length =1 ;
+	if(!gi_length && !bandwidth )
+	 final_rate= final_rate +jh->rate_idx_ ;
+	else if(gi_length && !bandwidth )
+	 final_rate= final_rate +jh->rate_idx_ + 76;
+	else if(!gi_length && bandwidth )
+	 final_rate= final_rate +jh->rate_idx_ + 2*76;
+	else if(gi_length && bandwidth )
+	 final_rate= final_rate +jh->rate_idx_ + 3*76;
+    paket->rate=  final_rate ;    //jh->rate_idx_ & 0x7f ;    	
   }else { 			
-    paket->rate = (jh->rate_ & 0x7f) +76 ; //  (float)((.5 * ((jh->rate_) & 0x7f)));
+    paket->rate = (jh->rate_ & 0x7f) ; //  (float)((.5 * ((jh->rate_) & 0x7f)));
   }
+
+
   if(jh->flags_ & RX_FLAG_SHORTPRE ){	
     paket->short_preamble_err=1;
   }
-	//printf("antenna=%d   index=%d  freq= %d \n",jh->antenna_ , in_idx , jh->freq_ );
-	static int a =0 ; 
-	printf("caplen=%d \n",jh->caplen_);
 	/*
 	printf("caplen=%u snaplen_=%u \n antenna=%u \nrssi=%d  \nchannel=%d  \nrate=%u \n rate_idx=%u \nflags=%d  \nofdm_err=%u \n cck_err=%u phyerr =%u  \n", 
 			jh->caplen_,jh->snaplen_, jh->antenna_, 
 			jh->rssi_, jh->channel_, jh->rate_,
 		 	jh->rate_idx_ , jh->flags_, jh->ofdm_phyerr_,jh->cck_phyerr_ ,jh->phyerr_);
 	*/
-  printf(" antenna=%d  index=%d  cck=%u   ofdm=%u  phy=%u \n ",jh->antenna_ , in_idx, jh->cck_phyerr_, jh->ofdm_phyerr_ , jh->phyerr_ );
-	printf("total pkts =%u \n ",jh->total_pkts_);
+  //printf(" antenna=%d  index=%d  freq=%d cck=%u   ofdm=%u  phy=%u \n ",jh->antenna_ , in_idx, jh->freq_,  jh->cck_phyerr_, jh->ofdm_phyerr_ , jh->phyerr_ );
   if(in_idx ==0){				
     
     if(jh->phyerr_ - prev_phy_err_0 >=0 ) // no need to do two' complement ... as counter flip is 1 in 2^32 event
@@ -129,10 +144,11 @@ int j_hdr(struct jigdump_hdr *jh , int in_idx, struct rcv_pkt * paket){
 
     
   }
-  //printf("rssi = %d %d \n",jh->rssi_, paket->rssi);
-  //printf("ofdm errs: %u %u \n",paket->ath_ofdm_phy_err , jh->ofdm_phyerr_);
-  //printf("cck errs: %u %u \n",paket->ath_cck_phy_err , jh->cck_phyerr_);
-  
+/*  printf("rssi = %d %d \n",jh->rssi_, paket->rssi);
+  printf("ofdm errs: %u %u \n",paket->ath_ofdm_phy_err , jh->ofdm_phyerr_);
+  printf("cck errs: %u %u \n",paket->ath_cck_phy_err , jh->cck_phyerr_);
+  printf("total pkts : %u \n",paket->total_pkts);
+*/
   if (jh->flags_ & (RX_FLAG_FAILED_FCS_CRC | RX_FLAG_FAILED_PLCP_CRC )) {
     paket->ath_crc_err=1;
   }
@@ -182,11 +198,11 @@ int j_hdr(struct jigdump_hdr *jh , int in_idx, struct rcv_pkt * paket){
 }
 
 int update_pkt(struct jigdump_hdr* jh, int pkt_len, int in_idx, struct rcv_pkt * paket){ 
-  /*  if (sigprocmask(SIG_BLOCK, &block_set, NULL) < 0) {
+    if (sigprocmask(SIG_BLOCK, &block_set, NULL) < 0) {
     perror("sigprocmask");
     exit(1);
     }
-  */
+  
   ++pkt_count[in_idx];
   snapend = (uchar *)((uchar*) jh+jh->caplen_) ;
   
@@ -210,8 +226,6 @@ int update_pkt(struct jigdump_hdr* jh, int pkt_len, int in_idx, struct rcv_pkt *
   p = (uchar*) ((uchar*) jh+  sizeof(struct jigdump_hdr));
   
   u_int16_t fc =  EXTRACT_LE_16BITS(p);
- 	if(FC_TYPE(fc)== 0x1 || FC_TYPE(fc)==0x2) 
-	printf("pkt_len=%d diff=%d fc=%x crc=%u \n",pkt_len,  pkt_len- jh->caplen_ , FC_TYPE(fc) , paket->ath_crc_err );
   if (FC_MORE_DATA(fc))
     paket->more_data =1;
   if (FC_MORE_FLAG(fc))
@@ -251,7 +265,6 @@ int update_pkt(struct jigdump_hdr* jh, int pkt_len, int in_idx, struct rcv_pkt *
       break;
     case CONTROL_FRAME:
       paket->pkt_type= CONTROL_FRAME;
-				printf("control ! \n\n\n\n");
       switch(FC_SUBTYPE(fc)){ 
       case  CTRL_RTS :
 	rts =  (struct ctrl_rts_t *) ((uchar*) jh+sizeof(struct jigdump_hdr)) ; 
@@ -430,31 +443,31 @@ int update_pkt(struct jigdump_hdr* jh, int pkt_len, int in_idx, struct rcv_pkt *
 	  c_cf_end= (struct ctrl_end_t *) ((uchar*) jh+sizeof(struct jigdump_hdr)) ;
 	  memcpy( paket->mac_address,c_cf_end->ra,6) ;
 	  paket->p.ctrl_pkt.pkt_subtype = 55 ; //random
-	  address_control_table_lookup(&control_address_table,paket);
+	  address_control_table_lookup(&control_address_table_err,paket);
 	  break ;
 	case CTRL_BAR:
 	  c_bar  = (const struct ctrl_bar_t *) ((uchar*) jh+sizeof(struct jigdump_hdr));
 	  memcpy( paket->mac_address,c_bar->ra,6);
 	  paket->p.ctrl_pkt.pkt_subtype = 55 ; //random
-	  address_control_table_lookup(&control_address_table,paket);
+	  address_control_table_lookup(&control_address_table_err,paket);
 	  break ;
 	case  CTRL_BA:
 	  c_ba = ( const struct ctrl_ba_t * ) ((uchar*) jh+sizeof(struct jigdump_hdr)) ;
 	  memcpy( paket->mac_address,c_ba->ra,6) ;
 	  paket->p.ctrl_pkt.pkt_subtype = 55 ; //random
-	  address_control_table_lookup(&control_address_table,paket);
+	  address_control_table_lookup(&control_address_table_err,paket);
 	  break ;
 	case CTRL_END_ACK:
 	  c_end_ack  = (struct ctrl_end_ack_t *)  ((uchar*) jh+sizeof(struct jigdump_hdr)) ;
 	  memcpy( paket->mac_address,c_end_ack->ra,6);
 	  paket->p.ctrl_pkt.pkt_subtype = 55 ; //random
-	  address_control_table_lookup(&control_address_table,paket);
+	  address_control_table_lookup(&control_address_table_err,paket);
 	  break ;
 	case CTRL_PS_POLL :
 	  c_poll =  (struct ctrl_ps_poll_t *)((uchar*) jh+sizeof(struct jigdump_hdr)) ;
 	  memcpy( paket->mac_address,c_poll->bssid,6);
 	  paket->p.ctrl_pkt.pkt_subtype = 55 ; //random
-	  address_control_table_lookup(&control_address_table,paket);
+	  address_control_table_lookup(&control_address_table_err,paket);
 	  break ;
 	}
 	break ;   
@@ -613,31 +626,31 @@ int update_pkt(struct jigdump_hdr* jh, int pkt_len, int in_idx, struct rcv_pkt *
 	  c_cf_end= (struct ctrl_end_t *) ((uchar*) jh+sizeof(struct jigdump_hdr)) ;
 	  memcpy( paket->mac_address,c_cf_end->ra,6) ;
 	  paket->p.ctrl_pkt.pkt_subtype = 55 ; //random
-	  address_control_table_lookup(&control_address_table,paket);
+	  address_control_table_lookup(&control_address_table_err,paket);
 	  break ;
 	case CTRL_BAR:
 	  c_bar  = (const struct ctrl_bar_t *) ((uchar*) jh+sizeof(struct jigdump_hdr));
 	  memcpy( paket->mac_address,c_bar->ra,6);
 	  paket->p.ctrl_pkt.pkt_subtype = 55 ; //random
-	  address_control_table_lookup(&control_address_table,paket);
+	  address_control_table_lookup(&control_address_table_err,paket);
 	  break ;
 	case  CTRL_BA:
 	  c_ba = ( const struct ctrl_ba_t * ) ((uchar*) jh+sizeof(struct jigdump_hdr)) ;
 	  memcpy( paket->mac_address,c_ba->ra,6) ;
 	  paket->p.ctrl_pkt.pkt_subtype = 55 ; //random
-	  address_control_table_lookup(&control_address_table,paket);
+	  address_control_table_lookup(&control_address_table_err,paket);
 	  break ;
 	case CTRL_END_ACK:
 	  c_end_ack  = (struct ctrl_end_ack_t *)  ((uchar*) jh+sizeof(struct jigdump_hdr)) ;
 	  memcpy( paket->mac_address,c_end_ack->ra,6);
 	  paket->p.ctrl_pkt.pkt_subtype = 55 ; //random
-	  address_control_table_lookup(&control_address_table,paket);
+	  address_control_table_lookup(&control_address_table_err,paket);
 	  break ;
 	case CTRL_PS_POLL :
 	  c_poll =  (struct ctrl_ps_poll_t *)((uchar*) jh+sizeof(struct jigdump_hdr)) ;
 	  memcpy( paket->mac_address,c_poll->bssid,6);
 	  paket->p.ctrl_pkt.pkt_subtype = 55 ; //random
-	  address_control_table_lookup(&control_address_table,paket);
+	  address_control_table_lookup(&control_address_table_err,paket);
 	  break ;
 	 default : 	  
 	p = (uchar*) (jh+1) ;
@@ -660,11 +673,11 @@ int update_pkt(struct jigdump_hdr* jh, int pkt_len, int in_idx, struct rcv_pkt *
 		}
    }
   }
-/*    if (sigprocmask(SIG_UNBLOCK, &block_set, NULL) < 0) {
+    if (sigprocmask(SIG_UNBLOCK, &block_set, NULL) < 0) {
       perror("sigprocmask");
       exit(1);
     }
-		*/
+		
     return 1;  
 }
 
@@ -681,7 +694,6 @@ int create_header(uchar *jb, const int jb_len, int in_fd, int in_idx ){
       syslog(LOG_ERR," jigdump hdr_len %d mis-match (%d), discard\n", (int)jh->hdrlen_, (int)sizeof(*jh));
       return 0;
     }
-    // test_func_inspection (jh);	
     //TODO: check for channel here ! when you get better ; right now it sniffs on the default channel .. might want to set it
     b += sizeof(*jh) + jh->snaplen_ ;
     if (b > jb + jb_len) {
@@ -746,8 +758,6 @@ int capture_(int in_fd, int in_idx)
   if(pkt_count[in_idx]%50 == 0){     
     k_pkt_stats();
   }
-	
- //  printf("in capture\n");
   return 1;
 }
 #endif 
@@ -757,7 +767,6 @@ void set_next_alarm() {
 }
 
 void handle_signals(int sig) {
-		printf("I came into signal handler\n");
   if (sig == SIGINT || sig == SIGTERM) {
     write_update();
 #ifndef NON_PACKET_MMAP
@@ -828,7 +837,7 @@ int main(int argc, char* argv[])
 
   if(argc < 5){
     printf("usage : binary <mon interface 0> <mon interface 1> <wlan interface 0> <wlan interface 1> \n");
-    exit(1);
+    return 1;
   }
   char  *device0= argv[1];
   char  *device1= argv[2];
@@ -873,7 +882,7 @@ int main(int argc, char* argv[])
   printf("in main\n");
   if(in_fd_1 == -1 || in_fd_0 == -1){
     fprintf(stderr,"Can't set the interfaces with required parameters. Exit\n");
-    exit(-1);
+    return 1;
   }
   struct timeval st;
   for(;;)
