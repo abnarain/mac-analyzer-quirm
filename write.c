@@ -49,7 +49,7 @@ int initialize_bismark_id() {
 
 int write_update(){
 
-
+	k_pkt_stats();
   gzFile client_handle = gzopen (PENDING_UPDATE_CLIENT_FILENAME, "wb");
   gzFile mgmt_handle = gzopen (PENDING_UPDATE_MGMT_FILENAME, "wb");
   gzFile control_handle = gzopen (PENDING_UPDATE_CONTROL_FILENAME, "wb");
@@ -239,6 +239,7 @@ int address_data_table_lookup(data_address_table_t*  table,struct rcv_pkt * pake
 		table->entries[mac_id].ath_phy_err_count=table->entries[mac_id].ath_phy_err_count+paket->ath_phy_err;
 		table->entries[mac_id].ath_ofdm_phy_err_count=table->entries[mac_id].ath_ofdm_phy_err_count+paket->ath_ofdm_phy_err;
 		table->entries[mac_id].ath_cck_phy_err_count=table->entries[mac_id].ath_cck_phy_err_count+paket->ath_cck_phy_err;
+		table->entries[mac_id].total_pkts_count=table->entries[mac_id].total_pkts_count+paket->total_pkts;
 	  table->entries[mac_id].freq =paket->freq ; 
 
 	  ++table->entries[mac_id].rt_index[paket->rate];
@@ -310,6 +311,7 @@ int address_data_table_lookup(data_address_table_t*  table,struct rcv_pkt * pake
   table->entries[table->last].ath_phy_err_count=paket->ath_phy_err;   
 		table->entries[table->last].ath_ofdm_phy_err_count=paket->ath_ofdm_phy_err;
 		table->entries[table->last].ath_cck_phy_err_count=paket->ath_cck_phy_err;
+		table->entries[table->last].total_pkts_count=paket->total_pkts;
     table->entries[table->last].freq =paket->freq ; 
     ++table->entries[table->last].rt_index[paket->rate];
     table->entries[table->last].channel_rcv=paket->channel_rcv ;
@@ -380,6 +382,7 @@ int address_control_table_lookup(control_address_table_t*  table,struct rcv_pkt 
 	  table->entries[mac_id].ath_phy_err_count=table->entries[mac_id].ath_phy_err_count+paket->ath_phy_err;
 		table->entries[mac_id].ath_ofdm_phy_err_count=table->entries[mac_id].ath_ofdm_phy_err_count+paket->ath_ofdm_phy_err;
 		table->entries[mac_id].ath_cck_phy_err_count=table->entries[mac_id].ath_cck_phy_err_count+paket->ath_cck_phy_err;
+		table->entries[mac_id].total_pkts_count=table->entries[mac_id].total_pkts_count+paket->total_pkts;
 	if(paket->ath_crc_err ){
 	  table->entries[mac_id].ath_crc_err_count++;	 	
 	}
@@ -437,6 +440,7 @@ int address_control_table_lookup(control_address_table_t*  table,struct rcv_pkt 
   table->entries[table->last].ath_phy_err_count=paket->ath_phy_err;   
 		table->entries[table->last].ath_ofdm_phy_err_count=paket->ath_ofdm_phy_err;
 		table->entries[table->last].ath_cck_phy_err_count=paket->ath_cck_phy_err;
+		table->entries[table->last].total_pkts_count=paket->total_pkts;
     table->entries[table->last].freq =paket->freq ; 
     table->entries[table->last].rate=paket->rate;
     table->entries[table->last].channel_rcv=paket->channel_rcv ;
@@ -499,6 +503,7 @@ int address_mgmt_table_lookup(mgmt_address_table_t*  table,struct rcv_pkt * pake
 	  table->entries[mac_id].ath_phy_err_count=table->entries[mac_id].ath_phy_err_count+paket->ath_phy_err;
 		table->entries[mac_id].ath_ofdm_phy_err_count=table->entries[mac_id].ath_ofdm_phy_err_count+paket->ath_ofdm_phy_err;
 		table->entries[mac_id].ath_cck_phy_err_count=table->entries[mac_id].ath_cck_phy_err_count+paket->ath_cck_phy_err;
+		table->entries[mac_id].total_pkts_count=table->entries[mac_id].total_pkts_count+paket->total_pkts;
 	if(paket->ath_crc_err ){
 	  table->entries[mac_id].ath_crc_err_count++;	 
 	}else{
@@ -562,6 +567,7 @@ int address_mgmt_table_lookup(mgmt_address_table_t*  table,struct rcv_pkt * pake
   
 		table->entries[table->last].ath_ofdm_phy_err_count=paket->ath_ofdm_phy_err;
 		table->entries[table->last].ath_cck_phy_err_count=paket->ath_cck_phy_err;
+		table->entries[table->last].total_pkts_count=paket->total_pkts;
     table->entries[table->last].ath_phy_err_count=paket->ath_phy_err;   
     table->entries[table->last].freq =paket->freq ; 
     table->entries[table->last].rate=paket->rate;
@@ -631,14 +637,15 @@ int address_data_table_write_update(data_address_table_t* table,data_address_tab
 #ifdef DEBUG_CORRECT
     printf("%02x:%02x:%02x:%02x:%02x:%02x\n",a[0],a[1],a[2],a[3],a[4],a[5]);
     printf("%02x:%02x:%02x:%02x:%02x:%02x\n",ab[0],ab[1],ab[2],ab[3],ab[4],ab[5]);
-    printf("pkt|anten|freq|ath_phy|ofdm phy|cck phy|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt\n");
-    printf("%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
+    printf("pkt|anten|freq|ath_phy|ofdm phy|cck phy|total|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt\n");
+    printf("%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
 	   table->entries[mac_id].total_packets,
 	   table->entries[mac_id].antenna,
 	   table->entries[mac_id].freq,
 	   table->entries[mac_id].ath_phy_err_count,
 		 table->entries[mac_id].ath_ofdm_phy_err_count,
 		 table->entries[mac_id].ath_cck_phy_err_count,
+		 table->entries[mac_id].total_pkts_count,
 	   table->entries[mac_id].channel_rcv,
 	   table->entries[mac_id].short_preamble_count,
 	   table->entries[mac_id].phy_wep_count,
@@ -693,7 +700,7 @@ int address_data_table_write_update(data_address_table_t* table,data_address_tab
       exit(1);
     }
 #endif
-    if(!gzprintf(handle,"%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u",
+    if(!gzprintf(handle,"%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u",
 		 table->entries[mac_id].total_packets,
 		 table->entries[mac_id].antenna,
 		 table->entries[mac_id].freq,
@@ -701,6 +708,7 @@ int address_data_table_write_update(data_address_table_t* table,data_address_tab
 		 table->entries[mac_id].ath_phy_err_count,
 		 table->entries[mac_id].ath_ofdm_phy_err_count,
 		 table->entries[mac_id].ath_cck_phy_err_count,
+		 table->entries[mac_id].total_pkts_count,
 		 table->entries[mac_id].channel_rcv,
 		 table->entries[mac_id].short_preamble_count,
 		 table->entries[mac_id].phy_wep_count,
@@ -733,7 +741,7 @@ int address_data_table_write_update(data_address_table_t* table,data_address_tab
       perror("error writing the left bracket data zip file ");
       exit(1);						
 		}
-		for(rate_idx=0;rate_idx <256; rate_idx++){
+		for(rate_idx=0;rate_idx <416; rate_idx++){
 			if(table->entries[mac_id].rt_index[rate_idx] !=0) {
 				if(!gzprintf(handle,"(%d,%d),",rate_idx, table->entries[mac_id].rt_index[rate_idx])){
 								
@@ -767,8 +775,8 @@ if(!gzprintf(handle,"-|-|-\n")){
 #ifdef DEBUG_INCORRECT
     printf("%02x:%02x:%02x:%02x:%02x:%02x\n",a[0],a[1],a[2],a[3],a[4],a[5]);
     printf("%02x:%02x:%02x:%02x:%02x:%02x\n",ab[0],ab[1],ab[2],ab[3],ab[4],ab[5]);
-    printf("pkt|anten|freq|ath_crc|ath_phy|ofdm phy|cck phy|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt\n");
-    printf("%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
+    printf("pkt|anten|freq|ath_crc|ath_phy|ofdm phy|cck phy|total|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt\n");
+    printf("%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
 	   table_err->entries[mac_id].total_packets,
 	   table_err->entries[mac_id].antenna,
 	   table_err->entries[mac_id].freq,
@@ -776,6 +784,7 @@ if(!gzprintf(handle,"-|-|-\n")){
 	   table_err->entries[mac_id].ath_phy_err_count,
 		 table_err->entries[mac_id].ath_ofdm_phy_err_count,
 		 table_err->entries[mac_id].ath_cck_phy_err_count,
+		 table_err->entries[mac_id].total_pkts_count,
 	   table_err->entries[mac_id].channel_rcv,
 	   table_err->entries[mac_id].short_preamble_count,
 	   table_err->entries[mac_id].phy_wep_count,
@@ -833,7 +842,7 @@ if(!gzprintf(handle,"-|-|-\n")){
     }
 #endif
 
-    if(!gzprintf(handle,"%u|%d|%u|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f\n",
+    if(!gzprintf(handle,"%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f\n",
 		 table_err->entries[mac_id].total_packets,
 		 table_err->entries[mac_id].antenna,
 		 table_err->entries[mac_id].freq,
@@ -841,9 +850,10 @@ if(!gzprintf(handle,"-|-|-\n")){
 		 table_err->entries[mac_id].ath_phy_err_count,
 		 table_err->entries[mac_id].ath_ofdm_phy_err_count,
 		 table_err->entries[mac_id].ath_cck_phy_err_count,
+		 table_err->entries[mac_id].total_pkts_count,
 		 table_err->entries[mac_id].channel_rcv,
 		 table_err->entries[mac_id].short_preamble_count,
-		 table_err->entries[mac_id].rate,
+		 table_err->entries[mac_id].rate, // TODO : check this rate stuff 
 		 rssi_avg,
 		 rssi_std_dev
 		 )){
@@ -869,8 +879,8 @@ int address_control_table_write_update(control_address_table_t* table,control_ad
 #endif 
 #ifdef DEBUG_CORRECT    
     printf("%02x:%02x:%02x:%02x:%02x:%02x\n",a[0],a[1],a[2],a[3],a[4],a[5]);
-    printf("pkt|anten|freq|ath_crc|ath_phy|ofdm phy|cck phy|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt|rate\n");
-    printf("%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
+    printf("pkt|anten|freq|ath_crc|ath_phy|ofdm phy|cck phy|total|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt|rate\n");
+    printf("%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
 	   table->entries[mac_id].total_packets,
 	   table->entries[mac_id].antenna,
 	   table->entries[mac_id].freq,
@@ -878,6 +888,7 @@ int address_control_table_write_update(control_address_table_t* table,control_ad
 	   table->entries[mac_id].ath_phy_err_count,
 		 table->entries[mac_id].ath_ofdm_phy_err_count,
 		 table->entries[mac_id].ath_cck_phy_err_count,
+		 table->entries[mac_id].total_pkts_count,
 	   table->entries[mac_id].channel_rcv,
 	   table->entries[mac_id].short_preamble_count,
 	   table->entries[mac_id].phy_wep_count,
@@ -915,7 +926,7 @@ int address_control_table_write_update(control_address_table_t* table,control_ad
       exit(1);
     }
 #endif
-    if(!gzprintf(handle,"%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u",
+    if(!gzprintf(handle,"%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u",
 		 table->entries[mac_id].total_packets,
 		 table->entries[mac_id].antenna,
 		 table->entries[mac_id].freq,
@@ -923,6 +934,7 @@ int address_control_table_write_update(control_address_table_t* table,control_ad
 		 table->entries[mac_id].ath_phy_err_count,
 		 table->entries[mac_id].ath_ofdm_phy_err_count,
 		 table->entries[mac_id].ath_cck_phy_err_count,
+		 table->entries[mac_id].total_pkts_count,
 		 table->entries[mac_id].channel_rcv,
 		 table->entries[mac_id].short_preamble_count,
 		 table->entries[mac_id].phy_wep_count,
@@ -963,8 +975,8 @@ if(!gzprintf(handle,"-|-|-\n")){
 #endif 
 #ifdef DEBUG_INCORRECT    
     printf("%02x:%02x:%02x:%02x:%02x:%02x\n",a[0],a[1],a[2],a[3],a[4],a[5]);
-    printf("pkt|anten|freq|ath_crc|ath_phy|ofdm phy|cck phy|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt|\n");
-    printf("%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
+    printf("pkt|anten|freq|ath_crc|ath_phy|ofdm phy|cck phy|total|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt|\n");
+    printf("%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
 	   table_err->entries[mac_id].total_packets,
 	   table_err->entries[mac_id].antenna,
 	   table_err->entries[mac_id].freq,
@@ -972,6 +984,7 @@ if(!gzprintf(handle,"-|-|-\n")){
 	   table_err->entries[mac_id].ath_phy_err_count,
 		 table_err->entries[mac_id].ath_ofdm_phy_err_count,
 		 table_err->entries[mac_id].ath_cck_phy_err_count,
+		 table_err->entries[mac_id].total_pkts_count,
 	   table_err->entries[mac_id].channel_rcv,
 	   table_err->entries[mac_id].short_preamble_count,
 	   table_err->entries[mac_id].phy_wep_count,
@@ -1010,7 +1023,7 @@ if(!gzprintf(handle,"-|-|-\n")){
     }
 #endif
 
-    if(!gzprintf(handle,"%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f\n", /*last one added */
+    if(!gzprintf(handle,"%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f\n", /*last one added */
 		 table_err->entries[mac_id].total_packets,
 		 table_err->entries[mac_id].antenna,
 		 table_err->entries[mac_id].freq,
@@ -1018,6 +1031,7 @@ if(!gzprintf(handle,"-|-|-\n")){
 		 table_err->entries[mac_id].ath_phy_err_count,
 		 table_err->entries[mac_id].ath_ofdm_phy_err_count,
 		 table_err->entries[mac_id].ath_cck_phy_err_count,
+		 table_err->entries[mac_id].total_pkts_count,
 		 table_err->entries[mac_id].channel_rcv,
 		 table_err->entries[mac_id].short_preamble_count,
 		 table_err->entries[mac_id].rate,
@@ -1047,8 +1061,8 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
 #endif    
 #ifdef DEBUG_CORRECT
     printf("%02x:%02x:%02x:%02x:%02x:%02x\n",a[0],a[1],a[2],a[3],a[4],a[5]);
-    printf("pkt|anten|freq|ath_crc|ath_phy|ofdm phy|cck phy|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt\n");
-    printf("%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
+    printf("pkt|anten|freq|ath_crc|ath_phy|ofdm phy|cck phy|total|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt\n");
+    printf("%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
 	   table->entries[mac_id].total_packets,
 	   table->entries[mac_id].antenna,
 	   table->entries[mac_id].freq,
@@ -1056,6 +1070,7 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
 	   table->entries[mac_id].ath_phy_err_count,
 		 table->entries[mac_id].ath_ofdm_phy_err_count,
 		 table->entries[mac_id].ath_cck_phy_err_count,
+		 table->entries[mac_id].total_pkts_count,
 	   table->entries[mac_id].channel_rcv,
 	   table->entries[mac_id].short_preamble_count,
 	   table->entries[mac_id].phy_wep_count,
@@ -1097,7 +1112,7 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
     }
 #endif
 
-    if(!gzprintf(handle,"%s|%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u",
+    if(!gzprintf(handle,"%s|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u",
 		 table->entries[mac_id].essid,
 		 table->entries[mac_id].total_packets,
 		 table->entries[mac_id].antenna,
@@ -1106,6 +1121,7 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
 		 table->entries[mac_id].ath_phy_err_count,
 		 table->entries[mac_id].ath_ofdm_phy_err_count,
 		 table->entries[mac_id].ath_cck_phy_err_count,
+		 table->entries[mac_id].total_pkts_count,
 		 table->entries[mac_id].channel_rcv,
 		 table->entries[mac_id].short_preamble_count,
 		 table->entries[mac_id].phy_wep_count,
@@ -1149,8 +1165,8 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
 #endif    
 #ifdef DEBUG_INCORRECT
     printf("%02x:%02x:%02x:%02x:%02x:%02x\n",a[0],a[1],a[2],a[3],a[4],a[5]);
-    printf("pkt|anten|freq|ath_crc|ath_phy|ofdm phy|cck phy|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt\n");
-    printf("%u|%d|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
+    printf("pkt|anten|freq|ath_crc|ath_phy|ofdm phy|cck phy|total|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt\n");
+    printf("%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u\n",
 	   table_err->entries[mac_id].total_packets,
 	   table_err->entries[mac_id].antenna,
 	   table_err->entries[mac_id].freq,
@@ -1158,6 +1174,7 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
 	   table_err->entries[mac_id].ath_phy_err_count,
 		 table_err->entries[mac_id].ath_ofdm_phy_err_count,
 		 table_err->entries[mac_id].ath_cck_phy_err_count,
+		 table_err->entries[mac_id].total_pkts_count,
 	   table_err->entries[mac_id].channel_rcv,
 	   table_err->entries[mac_id].short_preamble_count,
 	   table_err->entries[mac_id].phy_wep_count,
@@ -1198,7 +1215,7 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
       exit(1);
     }
 #endif
-    if(!gzprintf(handle,"%s|%u|%d|%u|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f|%2.1f\n",
+    if(!gzprintf(handle,"%s|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f|%2.1f\n",
 		 table_err->entries[mac_id].essid,
 		 table_err->entries[mac_id].total_packets,
 		 table_err->entries[mac_id].antenna,
@@ -1206,6 +1223,7 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
 		 table_err->entries[mac_id].ath_crc_err_count,
 		 table_err->entries[mac_id].ath_phy_err_count,
 		 table_err->entries[mac_id].ath_ofdm_phy_err_count,
+		 table_err->entries[mac_id].total_pkts_count,
 		 table_err->entries[mac_id].ath_cck_phy_err_count,
 		 table_err->entries[mac_id].channel_rcv,
 		 table_err->entries[mac_id].short_preamble_count,
@@ -1233,14 +1251,16 @@ int address_none_table_lookup(none_address_table_t*  table,struct rcv_pkt * pake
       if (!memcmp(table->entries[mac_id].mac_address, m_address, sizeof(m_address))){ 
 	table->entries[mac_id].total_packets++;
 	table->entries[mac_id].rssi_lin_sum= table->entries[mac_id].rssi_lin_sum + paket->rssi;
+	table->entries[mac_id].rssi_square_lin_sum= table->entries[mac_id].rssi_square_lin_sum + paket->rssi* paket->rssi;
 	// TODO : add the antilog of it 
 	  table->entries[mac_id].freq =paket->freq ; 
 	  table->entries[mac_id].rate=paket->rate;
 	  table->entries[mac_id].channel_rcv=paket->channel_rcv;	  
 	  table->entries[mac_id].antenna = paket->antenna;	  
-	table->entries[mac_id].ath_phy_err_count=table->entries[mac_id].ath_phy_err_count+paket->ath_phy_err;
+		table->entries[mac_id].ath_phy_err_count=table->entries[mac_id].ath_phy_err_count+paket->ath_phy_err;
 		table->entries[mac_id].ath_ofdm_phy_err_count=table->entries[mac_id].ath_ofdm_phy_err_count+paket->ath_ofdm_phy_err;
 		table->entries[mac_id].ath_cck_phy_err_count=table->entries[mac_id].ath_cck_phy_err_count+paket->ath_cck_phy_err;
+		table->entries[mac_id].total_pkts_count=table->entries[mac_id].total_pkts_count+paket->total_pkts;
 	if(paket->ath_crc_err ){
 	  table->entries[mac_id].ath_crc_err_count++;	 
 	}else{
@@ -1274,7 +1294,8 @@ int address_none_table_lookup(none_address_table_t*  table,struct rcv_pkt * pake
   
 		table->entries[table->last].ath_ofdm_phy_err_count=paket->ath_ofdm_phy_err;
 		table->entries[table->last].ath_cck_phy_err_count=paket->ath_cck_phy_err;
-  table->entries[table->last].ath_phy_err_count=paket->ath_phy_err;   
+  table->entries[table->last].ath_phy_err_count=paket->ath_phy_err;  
+	table->entries[table->last].total_pkts_count=paket->total_pkts; 
   if(paket->ath_crc_err){
     table->entries[table->last].ath_crc_err_count++ ;    
   }	
@@ -1299,8 +1320,8 @@ int address_none_table_write_update(none_address_table_t* table,gzFile handle) {
     u_int8_t *a=table->entries[mac_id].mac_address;
     
     printf("%02x:%02x:%02x:%02x:%02x:%02x\n",a[0],a[1],a[2],a[3],a[4],a[5]);
-    rintf("pkt|anten|freq|ath_crc|ath_phy|phy_ofdm|phy_cck|rate|channel|short_preamble|phy_wep|retry|more_flag|more_data|strictly_ordered|pwr_mgmt\n");
-    printf("%u|%u|%u|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f\n",
+    rintf("pkt|anten|freq|ath_crc|ath_phy|phy_ofdm|phy_cck|total|channel|short_preamble|rate\n");
+    printf("%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f\n",
 	   table->entries[mac_id].total_packets,
 	   table->entries[mac_id].antenna,
 	   table->entries[mac_id].freq,
@@ -1308,6 +1329,7 @@ int address_none_table_write_update(none_address_table_t* table,gzFile handle) {
 	   table->entries[mac_id].ath_phy_err_count,
 		 table->entries[mac_id].ath_ofdm_phy_err_count,
 		 table->entries[mac_id].ath_cck_phy_err_count,
+		 table->entries[mac_id].total_pkts_count,
 	   table->entries[mac_id].channel_rcv,
 	   table->entries[mac_id].short_preamble_count,
 	   table->entries[mac_id].rate
@@ -1324,7 +1346,7 @@ int address_none_table_write_update(none_address_table_t* table,gzFile handle) {
       perror("cannot write mac on  none packets");
       exit(1);
     }
-    if(!gzprintf(handle,"%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f\n",
+    if(!gzprintf(handle,"%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f\n",
 		 table->entries[mac_id].total_packets,
 		 table->entries[mac_id].antenna,
 		 table->entries[mac_id].freq,
@@ -1332,6 +1354,7 @@ int address_none_table_write_update(none_address_table_t* table,gzFile handle) {
 		 table->entries[mac_id].ath_phy_err_count,
 		 table->entries[mac_id].ath_ofdm_phy_err_count,
 		 table->entries[mac_id].ath_cck_phy_err_count,
+		 table->entries[mac_id].total_pkts_count,
 		 table->entries[mac_id].channel_rcv,
 		 table->entries[mac_id].short_preamble_count,
 		 table->entries[mac_id].rate,
