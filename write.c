@@ -1081,9 +1081,10 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
 	   table->entries[mac_id].pwr_mgmt_count
 	   );  
     printf("essid|beacon_|probe|privacy|ibss|rate|rate_max|rssi_avg|std_dev\n");
-    printf("%s|%u|%u|%u|%u|%u|%2.1f|%2.1f|%2.1f\n",
+    printf("%s|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f|%2.1f\n",
 	   table->entries[mac_id].essid,
 	   table->entries[mac_id].beacon_count,
+		 table->entries[mac_id].n_enabled,
 	   table->entries[mac_id].probe_count,
 	   table->entries[mac_id].cap_privacy,
 	   table->entries[mac_id].cap_ess_ibss,
@@ -1134,8 +1135,9 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
       perror("error writing the zip file ");
       exit(1);
     }
-    if(!gzprintf(handle,"|%u|%u|%u|%u|%u|%2.1f|%2.1f|%2.1f\n",
+    if(!gzprintf(handle,"|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f|%2.1f\n",
 		 table->entries[mac_id].beacon_count,
+		 table->entries[mac_id].n_enabled,
 		 table->entries[mac_id].probe_count,
 		 table->entries[mac_id].cap_privacy,
 		 table->entries[mac_id].cap_ess_ibss,
@@ -1185,9 +1187,10 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
 	   table_err->entries[mac_id].pwr_mgmt_count
 	   );  
     printf("essid|beacon_|probe|privacy|ibss|rate|rate_max|rssi_avg|std_dev\n");
-    printf("%s|%u|%u|%u|%u|%u|%2.1f|%2.1f|%2.1f\n",
+    printf("%s|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f|%2.1f\n",
 	   table_err->entries[mac_id].essid,
 	   table_err->entries[mac_id].beacon_count,
+		 table_err->entries[mac_id].n_enabled,
 	   table_err->entries[mac_id].probe_count,
 	   table_err->entries[mac_id].cap_privacy,
 	   table_err->entries[mac_id].cap_ess_ibss,
