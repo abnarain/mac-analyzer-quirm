@@ -41,6 +41,7 @@ typedef struct {
   u_int32_t ath_phy_err_count;
   u_int32_t ath_cck_phy_err_count ;
   u_int32_t ath_ofdm_phy_err_count;
+	u_int32_t total_pkts_count ;
   u_int32_t short_preamble_count;
   u_int8_t channel_rcv;
 
@@ -80,6 +81,7 @@ typedef struct {
   u_int32_t ath_phy_err_count;
   u_int32_t ath_cck_phy_err_count ;
   u_int32_t ath_ofdm_phy_err_count;
+	u_int32_t total_pkts_count ;
   u_int32_t short_preamble_count;
   u_int8_t channel_rcv;
 
@@ -104,13 +106,14 @@ typedef struct {
   float rssi_lin_sum;
 	float rssi_square_lin_sum;
   u_int16_t rate;
-	int rt_index[256];
+	int rt_index[416];
   u_int16_t freq ;
   u_int8_t antenna;
   u_int32_t ath_crc_err_count;
   u_int32_t ath_phy_err_count;
   u_int32_t ath_cck_phy_err_count ;
   u_int32_t ath_ofdm_phy_err_count;
+	u_int32_t total_pkts_count ;
   u_int32_t short_preamble_count;
   u_int8_t channel_rcv;
 
@@ -146,6 +149,7 @@ typedef struct {
   u_int32_t ath_phy_err_count;
   u_int32_t ath_cck_phy_err_count ;
   u_int32_t ath_ofdm_phy_err_count;
+	u_int32_t total_pkts_count ;
   u_int32_t short_preamble_count;
   u_int8_t channel_rcv;
 

@@ -56,7 +56,7 @@ int j_hdr(struct jigdump_hdr *jh , int in_idx, struct rcv_pkt * paket){
 	int bandwidth=0, gi_length=0;
 	int final_rate=0;
 
-  if(!jh->rate_ || (jh->flags_ & RX_FLAG_HT )){
+  if(jh->flags_ & RX_FLAG_HT ){
 		final_rate =109 ; 
 	if(jh->flags_ &  RX_FLAG_40MHZ)					
 		bandwidth =1 ; 
@@ -754,9 +754,6 @@ int capture_(int in_fd, int in_idx)
     create_header(jb,jb_len, in_fd, in_idx); 
   }else{
     perror("read_raw_socket failed \n");
-  }
-  if(pkt_count[in_idx]%50 == 0){     
-    k_pkt_stats();
   }
   return 1;
 }
