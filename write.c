@@ -537,8 +537,6 @@ int address_mgmt_table_lookup(mgmt_address_table_t*  table,struct rcv_pkt * pake
 		table->entries[mac_id].n_enabled_count++ ;
 	      //TODO:   privacy; cap_ess_ibss;  done with the first mgmnt pkt
 	      
-	      if(paket->p.mgmt_pkt.n_enabled)
-		table->entries[mac_id].n_enabled_count++; 
 	      table->entries[mac_id].rate_max= paket->p.mgmt_pkt.rate_max;
 	  }
 	  else if(paket->p.mgmt_pkt.pkt_subtype== ST_PROBE_RESPONSE)
@@ -1084,7 +1082,7 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
     printf("%s|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f|%2.1f\n",
 	   table->entries[mac_id].essid,
 	   table->entries[mac_id].beacon_count,
-		 table->entries[mac_id].n_enabled,
+		 table->entries[mac_id].n_enabled_count,
 	   table->entries[mac_id].probe_count,
 	   table->entries[mac_id].cap_privacy,
 	   table->entries[mac_id].cap_ess_ibss,
@@ -1137,7 +1135,7 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
     }
     if(!gzprintf(handle,"|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f|%2.1f\n",
 		 table->entries[mac_id].beacon_count,
-		 table->entries[mac_id].n_enabled,
+		 table->entries[mac_id].n_enabled_count,
 		 table->entries[mac_id].probe_count,
 		 table->entries[mac_id].cap_privacy,
 		 table->entries[mac_id].cap_ess_ibss,
@@ -1188,9 +1186,9 @@ int address_mgmt_table_write_update(mgmt_address_table_t* table,mgmt_address_tab
 	   );  
     printf("essid|beacon_|probe|privacy|ibss|rate|rate_max|rssi_avg|std_dev\n");
     printf("%s|%u|%u|%u|%u|%u|%u|%2.1f|%2.1f|%2.1f\n",
-	   table_err->entries[mac_id].essid,
+	   table_err->entries[mac_id].essid,  //essid placed in above block while copying into file . Carefull about the format
 	   table_err->entries[mac_id].beacon_count,
-		 table_err->entries[mac_id].n_enabled,
+		 table_err->entries[mac_id].n_enabled_count,
 	   table_err->entries[mac_id].probe_count,
 	   table_err->entries[mac_id].cap_privacy,
 	   table_err->entries[mac_id].cap_ess_ibss,
