@@ -205,7 +205,7 @@ int stats_drops =0;
       return 0;
     }
     if (0 == kstats.tp_drops)
-      return 1;
+      continue; 
     tp_drops[interf] = kstats.tp_drops ; 
     tp_packets[interf] = kstats.tp_packets ;  
     stats_drops =1 ;	 
@@ -228,7 +228,7 @@ int stats_drops =0;
   }
 
   if(stats_drops ==1 ){
-					printf("writing into file \n");
+		printf("we2f \n");
     gzFile drops_handle = gzopen (PENDING_UPDATE_DROPS_FILENAME, "wb");
     if (!drops_handle) {
       perror("Could not open update drops file for writing\n");
